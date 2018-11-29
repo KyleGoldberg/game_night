@@ -6,7 +6,10 @@ Using one or more boardgamegeek.com profiles, create a randomized list of games 
 Basic Usage
 ```python
 
-randomize_game_night(bgg_usernames = ['kgsoloman5k'], player_count = 2, session_length_minutes = 180, break_times = 0)
+randomize_game_night(bgg_usernames = ['kgsoloman5k'], player_count = 2
+                     , session_length_minutes = 180, break_times = 0
+                     , max_weight = 5.0, exclude_expansions = True
+                     , ssl_verify = True)
 
 ```
 
