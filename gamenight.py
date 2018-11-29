@@ -127,10 +127,4 @@ def randomize_game_night(bgg_usernames, player_count, session_length_minutes, br
     games_to_play = pd.DataFrame(games_to_play)
     print(games_to_play['title_name'])
     return(games_to_play)
-          
-            
-game_list = randomize_game_night(['kgsoloman5k'],2,180,0)
-            
-            
-                
-
+         
