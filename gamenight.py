@@ -19,6 +19,7 @@ import pandas as pd
 import random
 #usernames in format ['a','b']
 def create_games_df(username):
+    username = ['kgsoloman5k']
     for user in range(0,len(username)):
         #read in all titles in one users collection
         # figure out how to loop through these properly
@@ -30,8 +31,8 @@ def create_games_df(username):
         bgg_id = soup.find_all('item')
         
         for i in range(0,len(bgg_id)):
-            names[i] = names[i].get_text()
-            bgg_id[i] = bgg_id[i].get_attribute_list("objectid")
+                names[i] = names[i].text
+                bgg_id[i] = bgg_id[i]["objectid"]
             
         if user == 0:
             games_df = pd.concat([pd.DataFrame(list(names)),pd.DataFrame(list(bgg_id))],axis = 1)  
@@ -57,34 +58,31 @@ def create_games_df(username):
         games_df = games_df.drop_duplicates()
         #create recommended/best player counts
         #create avg playtime
-        #create weight    
-    i=0
+        #create weight
+    i=0 
     for i in range(0,len(games_df)):    
         status = 0
-        search_id = str(games_df['bgg_id'].iloc[i]).replace("'","").replace("[","").replace("]","")
+        search_id = games_df['bgg_id'][i]
         url_string = "http://www.boardgamegeek.com/xmlapi2/thing?id="+search_id+"&stats=1"
         #url_string = "http://www.boardgamegeek.com/xmlapi2/thing?id=173346"
-        while (status != 200):
-            
+        while (status != 200):    
             r = requests.get(url = url_string)    
             status = r.status_code
-            
         soup = BeautifulSoup(r.text,"xml")
-        #soup.find_all('results')[0].get_attribute_list('numplayers')
-        player_count = [None] * (len(soup.find_all('results'))-2)
-        player_count_status = [None] * (len(soup.find_all('results'))-2)
-        for k in range(0,len(soup.find_all('results'))-2):
-        #gets of votes for each player count for rec/not rec/best      
-            player_count[k] = str(soup.find_all('results')[k].get_attribute_list('numplayers')).replace("'","").replace("[","").replace("]","")
-            best = int(str(soup.find_all('results')[k].find_all('result')[0].get_attribute_list('numvotes')).replace("'","").replace("[","").replace("]",""))
-            rec = int(str(soup.find_all('results')[k].find_all('result')[1].get_attribute_list('numvotes')).replace("'","").replace("[","").replace("]",""))
-            not_rec = int(str(soup.find_all('results')[k].find_all('result')[2].get_attribute_list('numvotes')).replace("'","").replace("[","").replace("]",""))
-            if ((best+rec)/(best+rec+not_rec) < 0.8):
+        player_count = [None] * len(soup.find_all("poll")[0].find_all("results"))
+        player_count_status = [None] * len(soup.find_all("poll")[0].find_all("results"))
+        for k in range (0, len(soup.find_all("poll")[0].find_all("results"))):
+            player_count[k] = soup.find_all("poll")[0].find_all("results")[k]["numplayers"]
+            best = int(soup.find_all("results")[k].find_all("result")[0]["numvotes"])
+            rec = int(soup.find_all("results")[k].find_all("result")[1]["numvotes"])
+            not_rec = int(soup.find_all("results")[k].find_all("result")[2]["numvotes"])
+            if(best+rec+not_rec>1):
+                if((best+rec)/(best+rec+not_rec) < 0.8):
+                    player_count_status[k] = 0
+                else:
+                    player_count_status[k] = 1
+            else:
                 player_count_status[k] = 0
-            else: 
-                player_count_status[k] = 1
-                
-        #append player_count data to main df
         player_count_df = pd.concat([pd.DataFrame(player_count),pd.DataFrame(player_count_status)],axis = 1)
         player_count_df.columns = ['player_count','status']
         player_count_df['plus_loc'] = [f.find('+') for f in player_count_df['player_count']]
@@ -96,22 +94,18 @@ def create_games_df(username):
                 #if adding new columns need to update
                 z = 8+j
                 games_df.iloc[i, z:16] = player_count_df['status'][j]
-        
-              
         #find mid point of min/max game length        
-        games_df['min_playtime'].iloc[i] = int(str(soup.find_all('minplaytime')).replace('[<minplaytime value="','').replace('"/>]',''))
-        games_df['max_playtime'].iloc[i] = int(str(soup.find_all('maxplaytime')).replace('[<maxplaytime value="','').replace('"/>]',''))  
-        games_df['mid_playtime'].iloc[i] = (games_df['min_playtime'].iloc[i] + games_df['max_playtime'].iloc[i])/2    
-
+        games_df['min_playtime'][i] = int(soup.find_all('items')[0].find_all('minplaytime')[0]["value"])
+        games_df['max_playtime'][i] = int(soup.find_all('items')[0].find_all('maxplaytime')[0]["value"])
+        games_df['mid_playtime'][i] = (games_df['min_playtime'][i] + games_df['max_playtime'][i])/2    
+    
         #determine if an entry is an expansion or base game
-        games_df['expansion'].iloc[i] = str(soup.find_all('item')[0].get_attribute_list('type')).replace("['",'').replace("]'",'')
-                
+        games_df['expansion'][i] = str(soup.find_all('item')[0]["type"])
+    
         #some bgg stats around weight/rating for future parameters
-        games_df['avg_weight'].iloc[i] = float(str(soup.find_all('averageweight')).replace('[<averageweight value="','').replace('"/>]',''))
-        games_df['avg_rating'].iloc[i] = float(str(soup.find_all('average')).replace('[<average value="','').replace('"/>]',''))
-
+        games_df['avg_weight'][i] = float(soup.find_all('items')[0].find_all('averageweight')[0]["value"])
+        games_df['avg_rating'][i] = float(soup.find_all('items')[0].find_all('average')[0]["value"])                                
     return(games_df)
-
 
 def randomize_game_night(bgg_usernames, player_count, session_length_minutes, break_times):
 
