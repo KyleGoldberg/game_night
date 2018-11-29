@@ -19,7 +19,6 @@ import pandas as pd
 import random
 #usernames in format ['a','b']
 def create_games_df(username):
-    username = ['kgsoloman5k']
     for user in range(0,len(username)):
         #read in all titles in one users collection
         # figure out how to loop through these properly
