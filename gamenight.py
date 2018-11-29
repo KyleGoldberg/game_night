@@ -128,7 +128,8 @@ def randomize_game_night(bgg_usernames
     df.set_index(keys = df.columns[player_count_column],inplace = True)
     eligible_games = df.loc[1]
     eligible_games = eligible_games.loc[eligible_games['avg_weight'] <= max_weight]
-    eligible_games = eligible_games.loc[eligible_games['expansion'] == 'boardgame']
+    if exclude_expansions == True:
+        eligible_games = eligible_games.loc[eligible_games['expansion'] == 'boardgame']
     randomize_list_order = random.sample(range(0,len(eligible_games)),len(eligible_games))
     total_time = 0
     games_to_play = list()
