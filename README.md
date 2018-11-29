@@ -12,3 +12,7 @@ game_list = randomize_game_night(bgg_usernames = ['kgsoloman5k'], player_count =
 
 
 All data belongs to boardgamegeek.com
+
+Resources:
+BGG XML API2 Intro - https://boardgamegeek.com/wiki/page/BGG_XML_API2
+
