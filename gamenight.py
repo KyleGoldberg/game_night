@@ -18,11 +18,13 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import random
 #usernames in format ['a','b']
-def create_games_df(username):
+def create_games_df(username,ssl_verify):
     for user in range(0,len(username)):
         #read in all titles in one users collection
-        # figure out how to loop through these properly
-        r = requests.get(url="http://www.boardgamegeek.com/xmlapi2/collection?username="+username[user]+"&own=1")
+        if ssl_verify == True:
+            r = requests.get(url="http://www.boardgamegeek.com/xmlapi2/collection?username="+username[user]+"&own=1")
+        else:
+            r = requests.get(url="http://www.boardgamegeek.com/xmlapi2/collection?username="+username[user]+"&own=1",verify = False)
         soup = BeautifulSoup(r.text, "xml")
         print(r.status_code)
         
@@ -64,8 +66,11 @@ def create_games_df(username):
         search_id = games_df['bgg_id'][i]
         url_string = "http://www.boardgamegeek.com/xmlapi2/thing?id="+search_id+"&stats=1"
         #url_string = "http://www.boardgamegeek.com/xmlapi2/thing?id=173346"
-        while (status != 200):    
-            r = requests.get(url = url_string)    
+        while (status != 200):
+            if ssl_verify == True:
+                r = requests.get(url = url_string)   
+            else:
+                r = requests.get(url = url_string, verify = False)   
             status = r.status_code
         soup = BeautifulSoup(r.text,"xml")
         player_count = [None] * len(soup.find_all("poll")[0].find_all("results"))
@@ -106,14 +111,24 @@ def create_games_df(username):
         games_df['avg_rating'][i] = float(soup.find_all('items')[0].find_all('average')[0]["value"])                                
     return(games_df)
 
-def randomize_game_night(bgg_usernames, player_count, session_length_minutes, break_times):
 
-    df = create_games_df(bgg_usernames)
+def randomize_game_night(bgg_usernames
+                         , player_count
+                         , session_length_minutes
+                         , break_times
+                         , max_weight = 5.0
+                         , exclude_expansions = True
+                         , ssl_verify = True):
+
+    df = create_games_df(bgg_usernames,ssl_verify = ssl_verify)
     #if adding new columns need to update
     player_count_column = 7 + player_count
     #put only games recommended at the input player_count into the eligible_games dataframe
+    #exclude games above max_weight if set, exclude expansions or not
     df.set_index(keys = df.columns[player_count_column],inplace = True)
     eligible_games = df.loc[1]
+    eligible_games = eligible_games.loc[eligible_games['avg_weight'] <= max_weight]
+    eligible_games = eligible_games.loc[eligible_games['expansion'] == 'boardgame']
     randomize_list_order = random.sample(range(0,len(eligible_games)),len(eligible_games))
     total_time = 0
     games_to_play = list()
